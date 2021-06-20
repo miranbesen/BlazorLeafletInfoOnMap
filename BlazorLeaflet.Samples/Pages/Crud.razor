@@ -1,0 +1,189 @@
+﻿@page "/crud"
+
+@using BlazorLeaflet.Samples.Data
+@inject BlazorLeaflet.Samples.Data.EczaneServices service
+
+<div class="container">
+    <div class="row bg-light">
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Eczane Id</th>
+                    <th>Eczane Adı</th>
+                    <th>Bulundugu Sehir</th>
+                    <th>Lat</th>
+                    <th>Long</th>
+                    <th>Eczane Sil</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (EczaneList.Any())
+                {
+                    @foreach (var eczane in EczaneList)
+                    {
+                        <tr @onclick="(() => SetEczaneForUpdate(eczane))">
+                        <td>@eczane.Id</td>
+                        <td>@eczane.Name</td>
+                        <td>@eczane.Sehir</td>
+                        <td>@eczane.Lat</td>
+                        <td>@eczane.Long</td>
+                        <td><button class="btn btn-danger" @onclick="(() => DeleteEczane(eczane))">Sil</button></td>
+                        </tr>
+                    } 
+                }
+                else
+                {
+                    <tr><td colspan="6"><strong>Gorunurde eczane bulunmamaktadır</strong></td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <br />
+    <div>
+        <button class="btn btn-dark" @onclick="@(e=>RotaAyar("ilk"))">@("<<")</button>
+        <button class="btn btn-dark" @onclick="@(e=>RotaAyar("önceki"))">Önceki</button>
+
+        @for (int i = 0; i < TotalPages; i++)
+        {
+            var pageNumber = i;
+            <button class="btn @(CurrentPage==pageNumber? "btn-danger":"btn-info")" @onclick="@(e=>UpdateEczaneList(pageNumber))">@(i+1)</button>
+        }
+
+        <button class="btn btn-dark" @onclick="@(e=>RotaAyar("sonraki"))">Sonraki</button>
+        <button class="btn btn-dark" @onclick="@(e=>RotaAyar("son"))">@(">>")</button>
+    </div>
+
+    <div class="row m-5">
+        <div class="col-5 bg-light m-2 justify-content-start">
+            <div class="p-3 mb-3 bg-primary text-white text-center">Yeni Eczane Ekle</div>
+            <EditForm Model="@NewEczane" OnValidSubmit="AddNewEczane">
+                <DataAnnotationsValidator />
+                <div class="form-group">
+                    <label for="name">Eczane Adı</label>
+                    <input type="text" id="name" class="form-control" @bind-value="@NewEczane.Name" />
+                    <ValidationMessage For="@(()=>NewEczane.Name)" />
+                </div>
+                <div class="form-group">
+                    <label for="sehir">Bulundugu Sehir</label>
+                    <input type="text" id="sehir" class="form-control" @bind-value="@NewEczane.Sehir" />
+                </div>
+                <div class="form-group">
+                    <label for="lat">Lat</label>
+                    <input type="text" id="lat" class="form-control" @bind="@NewEczane.Lat" />
+                   
+                </div>
+                <div class="form-group">
+                    <label for="long">Long</label>
+                    <input type="text" id="long" class="form-control" @bind="@NewEczane.Long" />
+                    
+                </div>
+                <div class="text-center p-3 mb-3">
+                    <button class="btn btn-info"> Eczane Ekle</button>
+                </div>
+
+
+            </EditForm>
+        </div>
+        <div class="col-5 bg-light m-2 justify-content-end">
+            <div class="p-3 mb-1 bg-primary text-white text-center">Guncel Eczane</div>
+            <EditForm Model="@UpdateEczane">
+                <div class="form-group">
+                    <label for="name">Eczane Adı</label>
+                    <input type="text" id="name" class="form-control" @bind-value="@UpdateEczane.Name" />
+                </div>
+                <div class="form-group">
+                    <label for="sehir">Bulundugu Sehir</label>
+                    <input type="text" id="sehir" class="form-control" @bind-value="@UpdateEczane.Sehir" />
+                </div>
+                <div class="form-group">
+                    <label for="lat">Lat</label>
+                    <input type="text" id="lat" class="form-control" @bind="@UpdateEczane.Lat" />
+                </div>
+                <div class="form-group">
+                    <label for="long">Long</label>
+                    <input type="text" id="long" class="form-control" @bind="@UpdateEczane.Long" />
+                </div>
+
+                <div class="text-center p-3 mb-3">
+                    <button class="btn btn-info" @onclick="UpdateEczaneData"> Eczane Guncelle</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code 
+{
+
+    List<Eczane> Eczanes = new List<Eczane>();
+    public List<Eczane> EczaneList { get; set; }
+
+
+    public int pageSize { get; set; }
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    { 
+        await RefreshEczanes();
+    }
+
+    private void UpdateEczaneList(int pageNumber)
+    {
+        CurrentPage = pageNumber;
+        EczaneList = Eczanes.Skip(pageNumber* pageSize).Take(pageSize).ToList();
+    }
+
+    private void RotaAyar(string yön)
+    {
+        if (yön == "ilk")
+            CurrentPage = 0;
+        if (yön == "son")
+            CurrentPage = TotalPages - 1;
+        if (yön == "önceki" && CurrentPage != 0)
+            CurrentPage -= 1;
+        if (yön == "sonraki" && CurrentPage != TotalPages-1)
+            CurrentPage += 1;
+
+        UpdateEczaneList(CurrentPage);
+    }
+
+    private async Task RefreshEczanes()
+    {
+        Eczanes = await service.GetEczaneAsync();
+        pageSize = 4;
+        CurrentPage = 0;
+
+        EczaneList = Eczanes.Take(pageSize).ToList();
+        TotalPages = (int)Math.Ceiling(Eczanes.Count() / (decimal)pageSize);
+    }
+
+    public Eczane NewEczane { get; set; } = new Eczane();
+    private async Task AddNewEczane()
+    {
+        await service.AddEczaneAsync(NewEczane);
+        NewEczane = new Eczane();
+        await RefreshEczanes();
+    }
+
+    Eczane UpdateEczane = new Eczane();
+
+    private void SetEczaneForUpdate(Eczane eczane)
+    {
+        UpdateEczane = eczane;
+    }
+    
+    private async Task UpdateEczaneData()
+    {
+        await service.UpdateEczaneAsync(UpdateEczane);
+        await RefreshEczanes();
+    }
+    
+    private async Task DeleteEczane(Eczane eczane)
+    {
+        await service.DeleteEczaneAsync(eczane);
+        await RefreshEczanes();
+    } 
+
+}

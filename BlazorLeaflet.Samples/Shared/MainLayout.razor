@@ -1,0 +1,44 @@
+﻿@inherits Microsoft.AspNetCore.Components.LayoutComponentBase
+
+<div class="sidebar">
+    <NavMenu />
+</div>
+
+<style>
+    .header 
+    {
+        padding: 20px;
+        text-align: center;
+        background: #b200ff;
+        color: black;
+    }
+        
+    .header h1 
+    {
+       font-size: 40px;
+    }
+    .footer 
+    {
+        padding: 10px; /* Some padding */
+        text-align: center; /* Center text*/
+        background: #ddd; /* Grey background */
+        margin-top: 240px;
+        border-style: inset;
+    }
+
+</style>
+
+<div class="main">
+    <div class="header">
+        <h1>Eczane CRUD AND Map INFO</h1>
+    </div>
+
+    <div class="content px-4">
+        @Body
+    </div>
+
+    <div class="footer">
+        <font size="+3">Destekleriniz için teşekkür ederiz!</font>
+    </div>
+
+</div>
