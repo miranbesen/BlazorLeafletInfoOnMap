@@ -2,6 +2,10 @@
 
 @using BlazorLeaflet.Samples.Data
 @inject BlazorLeaflet.Samples.Data.EczaneServices service
+@using BlazorLeaflet.Models
+@using BlazorLeaflet.Models.Events
+@inject IJSRuntime jsRuntime
+
 
 <div class="container">
     <div class="row bg-light">
@@ -22,14 +26,14 @@
                     @foreach (var eczane in EczaneList)
                     {
                         <tr @onclick="(() => SetEczaneForUpdate(eczane))">
-                        <td>@eczane.Id</td>
-                        <td>@eczane.Name</td>
-                        <td>@eczane.Sehir</td>
-                        <td>@eczane.Lat</td>
-                        <td>@eczane.Long</td>
-                        <td><button class="btn btn-danger" @onclick="(() => DeleteEczane(eczane))">Sil</button></td>
+                            <td>@eczane.Id</td>
+                            <td>@eczane.Name</td>
+                            <td>@eczane.Sehir</td>
+                            <td>@eczane.Lat</td>
+                            <td>@eczane.Long</td>
+                            <td><button class="btn btn-danger" @onclick="(() => DeleteEczane(eczane))">Sil</button></td>
                         </tr>
-                    } 
+                    }
                 }
                 else
                 {
@@ -67,15 +71,20 @@
                     <label for="sehir">Bulundugu Sehir</label>
                     <input type="text" id="sehir" class="form-control" @bind-value="@NewEczane.Sehir" />
                 </div>
+                
+                <div style="height: 200px; width: 390px;">
+                    <LeafletMap Map="_map" />
+                </div>
+
                 <div class="form-group">
                     <label for="lat">Lat</label>
-                    <input type="text" id="lat" class="form-control" @bind="@NewEczane.Lat" />
-                   
+                    <input type="text" id="lat" class="form-control" @bind="_markerLatLng.Lat" />
+
                 </div>
                 <div class="form-group">
                     <label for="long">Long</label>
-                    <input type="text" id="long" class="form-control" @bind="@NewEczane.Long" />
-                    
+                    <input type="text" id="long" class="form-control" @bind="_markerLatLng.Lng" />
+
                 </div>
                 <div class="text-center p-3 mb-3">
                     <button class="btn btn-info"> Eczane Ekle</button>
@@ -95,13 +104,18 @@
                     <label for="sehir">Bulundugu Sehir</label>
                     <input type="text" id="sehir" class="form-control" @bind-value="@UpdateEczane.Sehir" />
                 </div>
+                
+                <div style="height: 200px; width: 390px;">
+                    <LeafletMap Map="_map2" />
+                </div>
+
                 <div class="form-group">
                     <label for="lat">Lat</label>
-                    <input type="text" id="lat" class="form-control" @bind="@UpdateEczane.Lat" />
+                    <input type="text" id="lat" class="form-control" @bind="_markerLatLng2.Lat" />
                 </div>
                 <div class="form-group">
                     <label for="long">Long</label>
-                    <input type="text" id="long" class="form-control" @bind="@UpdateEczane.Long" />
+                    <input type="text" id="long" class="form-control" @bind="_markerLatLng2.Lng" />
                 </div>
 
                 <div class="text-center p-3 mb-3">
@@ -112,8 +126,15 @@
     </div>
 </div>
 
-@code 
+@code
 {
+    private Map _map;
+    private Map _map2;
+
+    private LatLng _startAt = new LatLng(39.266284f, 34.919440f);
+
+    private LatLng _markerLatLng = new LatLng { Lat = 39.266284f, Lng = 34.919440f };
+    private LatLng _markerLatLng2 = new LatLng { Lat = 39.266284f, Lng = 34.919440f };
 
     List<Eczane> Eczanes = new List<Eczane>();
     public List<Eczane> EczaneList { get; set; }
@@ -125,14 +146,107 @@
 
 
     protected override async Task OnInitializedAsync()
-    { 
+    {
         await RefreshEczanes();
+        var marker = new Marker(_markerLatLng)
+        {
+            Draggable = true,
+            Title = "Marker 1",
+            Popup = new Popup { Content = string.Format("I am at {0:0.00}° lat, {1:0.00}° lng", _markerLatLng.Lat, _markerLatLng.Lng) },
+            Tooltip = new Models.Tooltip { Content = "New Eczane LatLong" },
+            Icon = new Icon { Url = "https://d29fhpw069ctt2.cloudfront.net/clipart/103790/preview/Location_marker_preview_e469.png", ClassName = "map-icon" }
+        };
+
+        var marker2 = new Marker(_markerLatLng2)
+        {
+            Draggable = true,
+            Title = "Marker 2",
+            Popup = new Popup { Content = string.Format("I am at {0:0.00}° lat, {1:0.00}° lng", _markerLatLng2.Lat, _markerLatLng2.Lng) },
+            Tooltip = new Models.Tooltip { Content = "Guncellenecek Eczane LatLong" },
+            Icon = new Icon { Url = "https://d29fhpw069ctt2.cloudfront.net/clipart/103790/preview/Location_marker_preview_e469.png", ClassName = "map-icon" }
+        };
+
+        _map = new Map(jsRuntime)
+        {
+
+            Center = _startAt,
+            Zoom = 4.8f
+        };
+
+
+        _map2 = new Map(jsRuntime)
+        {
+
+            Center = _startAt,
+            Zoom = 4.8f
+        };
+
+
+        _map.OnInitialized += () =>
+        {
+            _map.AddLayer(new TileLayer
+            {
+                UrlTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                Attribution = "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+            });
+
+            _map.AddLayer(marker);
+
+
+        };
+
+        _map2.OnInitialized += () =>
+        {
+            _map2.AddLayer(new TileLayer
+            {
+                UrlTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                Attribution = "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+            });
+
+            _map2.AddLayer(marker2);
+
+
+        };
+
+
+        marker.OnMove += OnDrag;
+        marker.OnMoveEnd += OnDragEnd;
+
+        marker2.OnMove += OnDrag2;
+        marker2.OnMoveEnd += OnDragEnd2;
+
+    }
+
+    private void OnDrag(Marker marker, DragEvent evt)
+    {
+        _markerLatLng = evt.LatLng;
+        StateHasChanged();
+    }
+
+    private async void OnDragEnd(Marker marker, Event e)
+    {
+        marker.Position = _markerLatLng;
+        marker.Popup.Content = string.Format("I am now at {0:0.00}° lat, {1:0.00}° lng", _markerLatLng.Lat, _markerLatLng.Lng);
+        await LeafletInterops.UpdatePopupContent(jsRuntime, _map.Id, marker);
+    }
+
+    private void OnDrag2(Marker marker, DragEvent evt)
+    {
+        _markerLatLng2 = evt.LatLng;
+        StateHasChanged();
+    }
+
+    private async void OnDragEnd2(Marker marker, Event e)
+    {
+        marker.Position = _markerLatLng2;
+        marker.Popup.Content = string.Format("I am now at {0:0.00}° lat, {1:0.00}° lng", _markerLatLng2.Lat, _markerLatLng2.Lng);
+        await LeafletInterops.UpdatePopupContent(jsRuntime, _map2.Id, marker);
     }
 
     private void UpdateEczaneList(int pageNumber)
     {
         CurrentPage = pageNumber;
-        EczaneList = Eczanes.Skip(pageNumber* pageSize).Take(pageSize).ToList();
+        EczaneList = Eczanes.Skip(pageNumber * pageSize).Take(pageSize).ToList();
     }
 
     private void RotaAyar(string yön)
@@ -143,7 +257,7 @@
             CurrentPage = TotalPages - 1;
         if (yön == "önceki" && CurrentPage != 0)
             CurrentPage -= 1;
-        if (yön == "sonraki" && CurrentPage != TotalPages-1)
+        if (yön == "sonraki" && CurrentPage != TotalPages - 1)
             CurrentPage += 1;
 
         UpdateEczaneList(CurrentPage);
@@ -162,6 +276,8 @@
     public Eczane NewEczane { get; set; } = new Eczane();
     private async Task AddNewEczane()
     {
+        NewEczane.Lat = _markerLatLng.Lat;
+        NewEczane.Long = _markerLatLng.Lng;
         await service.AddEczaneAsync(NewEczane);
         NewEczane = new Eczane();
         await RefreshEczanes();
@@ -171,19 +287,25 @@
 
     private void SetEczaneForUpdate(Eczane eczane)
     {
+        float latit = Convert.ToSingle(eczane.Lat);
+        float longit = Convert.ToSingle(eczane.Long);
+        _markerLatLng2.Lat = latit;
+        _markerLatLng2.Lng = longit;
         UpdateEczane = eczane;
     }
-    
+
     private async Task UpdateEczaneData()
     {
+        UpdateEczane.Lat = _markerLatLng2.Lat;
+        UpdateEczane.Long = _markerLatLng2.Lng;
         await service.UpdateEczaneAsync(UpdateEczane);
         await RefreshEczanes();
     }
-    
+
     private async Task DeleteEczane(Eczane eczane)
     {
         await service.DeleteEczaneAsync(eczane);
         await RefreshEczanes();
-    } 
+    }
 
 }
