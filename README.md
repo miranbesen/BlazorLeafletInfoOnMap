@@ -1,2 +1,2 @@
 # BlazorLeafletInfoOnMap
-Harita üstünde eczane CRUD ve bir kaç fonksiyonel işlem yapılan uygulama.
+Application that shows the closest pharmacy according to the location entered on the map.
